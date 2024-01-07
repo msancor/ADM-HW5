@@ -253,6 +253,128 @@ class Frontend():
                 print(f"{node1_name} belongs to Community 2")
                 print(f"{node2_name} belongs to Community 1")
 
+    def plot_mincut(self, G: nx.Graph, node1_name: str, node2_name: str, N: int = 500) -> None:
+        """
+        Function that plots the mincut between two nodes in a graph.
+
+        Args:
+            G (nx.Graph): Graph to plot the mincut.
+            node1_name (str): Name of the first node.
+            node2_name (str): Name of the second node.
+            N (int, optional): Number of nodes to take into account when computing the mincut. Defaults to 500.
+        """
+
+        #First we run functionality_4 to obtain the mincut of the graph and other information of interest.
+        results_dict = self.backend.functionality_4(G, node1_name, node2_name, N)
+
+        #Now we can define subgraphs from the results dictionary resulting from functionality_4.
+        #First, the original subgraph without removing any edges.
+        H = results_dict["original_graph"]
+        #Then, the subgraph with the edges removed.
+        F = results_dict["cut_graph"]
+
+        #Now we can get the attributes of the nodes and the edges of the graph.
+        weights, weights_cut, colors, sizes, color_cut, sizes_cut = self.__get_mincut_attributes(H, F, results_dict)
+
+        #Now we can plot the graph before and after performing the MinCut algorithm.
+        _, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,10))
+        
+        #Here we create the legends of the plot.
+        red_patch = mpatches.Patch(color='red', label=f'{node1_name}')
+        blue_patch = mpatches.Patch(color='green', label=f'{node2_name}')
+
+        #First we plot the original graph. We use the spring layout to highlight the separation.
+        nx.draw_networkx_nodes(H,
+                pos=nx.spring_layout(H, k=0.01, iterations=50, seed=42),
+                node_color=colors,
+                node_size=sizes,
+                ax=ax1)
+        #Here we plot the edges of the original graph.
+        nx.draw_networkx_edges(H,
+                pos=nx.spring_layout(H, k=0.01, iterations=50, seed=42),
+                alpha=0.4,
+                width=0.5*weights,
+                ax=ax1)
+        #Here we label the graph.
+        ax1.axis('off')
+        ax1.set_title("Original Graph", fontsize=20)
+        ax1.legend(handles=[red_patch, blue_patch], loc='upper right', fontsize=12)
+
+        #Here we plot the graph after performing the Girvan-Newman algorithm.
+        nx.draw_networkx_nodes(F,
+                pos=nx.spring_layout(F, k=0.01, iterations=50, seed=42),
+                node_size=sizes_cut,
+                node_color=color_cut,
+                ax=ax2)
+        #Here we plot the edges of the graph after performing the Girvan-Newman algorithm.
+        nx.draw_networkx_edges(F,
+                pos=nx.spring_layout(F, k=0.01, iterations=50, seed=42),
+                alpha=0.4,
+                width=0.5*weights_cut,
+                ax=ax2)
+
+        #Here we eliminate the axis of the plot.
+        ax2.axis('off')
+        ax2.legend(handles=[red_patch, blue_patch], loc='upper right', fontsize=12)
+        ax2.set_title("Subgraphs (Min-Cut)", fontsize=20)
+
+        #Now we must print some information about the functionality
+        print("The total weight of the edges removed to separate the two nodes is", results_dict["min_cut_value"])
+
+    def __get_mincut_attributes(self, H: nx.Graph, F: nx.Graph, results_dict: Dict[str, List[str]]) -> Tuple[np.ndarray, np.ndarray, List[str], List[float], List[str], List[float]]:
+        """
+        Function that gets the attributes of the nodes and the edges of the graph for the Visualization 4.
+
+        Args:
+            H (nx.Graph): Original graph.
+            F (nx.Graph): Cut graph.
+            results_dict (Dict[str, List[str]]): Dictionary with the nodes of the communities.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray, List[str], List[float], List[str], List[float]]: Tuple with the attributes of the nodes and the edges.
+        """
+
+        #Here I obtain the weights of the edges of the original graph and the cut graph
+        weights = np.array([i['weight'] for i in dict(H.edges).values()])
+        weights_cut = np.array([i['weight'] for i in dict(F.edges).values()])
+
+        #Here I obtain ids of the nodes of interest
+        node_id1, node_id2 = results_dict["node_ids"]
+
+        #Here we create a colors and sizes list for the nodes of the original graph
+        colors, sizes = [], []
+
+        #Here we iterate through the nodes of the original graph
+        for node in H.nodes():
+            #If the node is one of the nodes of interest, we color it red and we make it bigger.
+            if node == node_id1:
+                colors.append('red')
+                sizes.append(500)
+            #If the node is one of the nodes of interest, we color it green and we make it bigger.
+            elif node == node_id2:
+                colors.append('green')
+                sizes.append(500)
+            #If the node is not one of the nodes of interest, we color it dodgerblue and we make it smaller.
+            else:
+                colors.append('dodgerblue')
+                sizes.append(50)
+
+        #Here we create a colors and sizes list for the nodes of the cut graph
+        color_cut, sizes_cut = [], []
+        #Here we iterate through the nodes of the cut graph
+        for node in F.nodes():
+            #Here we append its color attribute to the color_cut list depending on its partition
+            color_cut.append(F.nodes[node]['color'])
+
+            #If the node is one of the nodes of interest, we make it bigger.
+            if node == node_id1 or node == node_id2:
+                sizes_cut.append(500)
+            else:
+                sizes_cut.append(50)
+
+        #Here we return all the attributes
+        return weights, weights_cut, colors, sizes, color_cut, sizes_cut
+
 
     def __get_community_attributes(self, G: nx.Graph, components_dict: Dict[str, List[str]]) -> Tuple[List[str], List[float]]:
         """

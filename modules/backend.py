@@ -232,7 +232,11 @@ class Backend():
 
         #Here we create a new graph that contains the two subgraphs that are the result of the minimum cut and their edges
         subgraph1 = H.subgraph(partition[0])
+        #Here we create a new attribute for the nodes of the subgraph1 called "color" and set it to "red"
+        nx.set_node_attributes(subgraph1, "red", "color")
         subgraph2 = H.subgraph(partition[1])
+        #Here we create a new attribute for the nodes of the subgraph2 called "color" and set it to "green"
+        nx.set_node_attributes(subgraph2, "green", "color")
         #Here we add the edges between the two subgraphs
         subgraph = nx.compose(subgraph1, subgraph2)
 
@@ -241,7 +245,8 @@ class Backend():
             "original_graph": H,
             "cut_graph": subgraph,
             "min_cut_value": min_cut_value,
-            "node_ids": (node_1_id, node_2_id)
+            "node_ids": (node_1_id, node_2_id),
+            "partition": partition
         }
 
     
